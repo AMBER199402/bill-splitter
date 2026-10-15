@@ -1,0 +1,23 @@
+# Credentials and local secrets must never be committed
+.env
+.env.*
+*.env
+*.env.*
+secrets.json
+secrets.*
+**/secrets/**
+**/.ssh/**
+**/.aws/**
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+credentials*
+*credentials*.json
+*secret*.json
+node_modules/
+.DS_Store
+Thumbs.db

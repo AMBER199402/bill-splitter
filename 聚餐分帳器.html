@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'">
+<title>聚餐分帳器</title>
+<style>
+:root{font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#213c33;background:#f5f3eb;font-synthesis:none}*{box-sizing:border-box}body{margin:0;padding:48px 20px}main{max-width:560px;margin:auto}.tag{font-size:13px;letter-spacing:3px;color:#64786c}h1{font-size:36px;letter-spacing:-1px;margin:12px 0}header p{color:#68766d;line-height:1.7;margin-bottom:28px}.card{background:#fff;border:1px solid #e2e5db;border-radius:24px;padding:28px;box-shadow:0 12px 45px #213c3308}label{display:block;font-weight:650;margin-bottom:10px}.field{margin-bottom:24px}.input{display:flex;align-items:center;gap:12px;border:1px solid #bac8be;border-radius:12px;padding:0 16px}.input:focus-within{outline:3px solid #d2e6da;border-color:#3e745b}input[type=number]{width:100%;min-width:0;border:0;outline:0;font:inherit;font-size:25px;padding:14px 0;color:#213c33;background:transparent}.unit{color:#718075;white-space:nowrap}.check{display:flex;gap:12px;align-items:center;font-size:16px;font-weight:500;cursor:pointer}input[type=checkbox]{width:22px;height:22px;accent-color:#316d51;flex-shrink:0}button{width:100%;border:0;border-radius:12px;background:#285b44;color:white;font:inherit;font-weight:650;padding:16px;cursor:pointer;margin-top:10px}button:hover{background:#1e4936}button:focus-visible{outline:3px solid #8ab79c;outline-offset:3px}.result{margin-top:24px;background:#eaf1e9;border-radius:20px;padding:25px}.eyebrow{font-size:13px;color:#57715e;margin:0 0 14px}.row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:14px 0}.row+.row{border-top:1px solid #d0decf}.amount{font-size:30px;font-weight:750;white-space:nowrap}.amount small{font-size:15px;font-weight:500}.note{font-size:14px;line-height:1.7;color:#59715f;margin:12px 0 0}.total{font-size:14px;line-height:1.8;border-top:1px solid #d0decf;padding-top:14px;margin-top:12px}.error{color:#a73526;font-size:14px;line-height:1.6}footer{font-size:12px;color:#778579;text-align:center;margin-top:24px;line-height:1.8}[hidden]{display:none}@media(max-width:420px){body{padding:28px 16px}.card{padding:22px}h1{font-size:32px}.amount{font-size:26px}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="tag">一起吃飯，輕鬆分帳</div><h1>聚餐分帳器</h1><p>輸入帳單，算好每個人的份額。<br>除不盡的零頭，由負責付錢的人承擔。</p></header>
+<section class="card">
+<form id="form" novalidate autocomplete="off">
+<div class="field"><label for="bill">總金額</label><div class="input"><input id="bill" type="number" inputmode="numeric" min="0" step="1" value="1000" required aria-describedby="billHelp"><span class="unit">元</span></div><div id="billHelp" class="note">輸入未加服務費的整數金額。</div></div>
+<div class="field"><label for="people">人數</label><div class="input"><input id="people" type="number" inputmode="numeric" min="1" step="1" value="3" required><span class="unit">人（含付錢的人）</span></div></div>
+<label class="check"><input id="service" type="checkbox">加 10% 服務費</label>
+<button type="submit">計算分帳</button>
+<p id="error" class="error" role="alert" hidden></p>
+</form>
+<section id="result" class="result" aria-live="polite" aria-atomic="true" aria-label="分帳結果" hidden>
+<p class="eyebrow">這次這樣分</p>
+<div class="row"><span>付錢的人</span><span class="amount"><span id="payer"></span> <small>元</small></span></div>
+<div id="othersRow" class="row"><span>其他人各<span id="otherCount" class="note"></span></span><span class="amount"><span id="each"></span> <small>元</small></span></div>
+<p id="remainder" class="note"></p>
+<div id="total" class="total"></div>
+</section>
+</section>
+<footer>離線即可使用 · 不需登入 · 不儲存輸入資料</footer>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString('zh-TW');
+function calculate(bill,people,service){
+  const base=BigInt(bill), count=BigInt(people);
+  const total=service?(base*110n+50n)/100n:base;
+  const each=total/count, remainder=total%count;
+  return {total,each,remainder,payer:each+remainder};
+}
+function render(){
+  const bill=$('bill').value.trim(),people=$('people').value.trim();
+  const valid=s=>/^\d+$/.test(s)&&Number.isSafeInteger(Number(s));
+  let message='';
+  if(!valid(bill))message='請輸入 0 或以上的整數總金額（不超過 9,007,199,254,740,991 元）。';
+  else if(!valid(people)||Number(people)<1)message='請輸入至少 1 人的整數人數（不超過 9,007,199,254,740,991 人）。';
+  $('error').hidden=!message;$('error').textContent=message;
+  if(message){$('result').hidden=true;return;}
+  const r=calculate(bill,people,$('service').checked);
+  $('payer').textContent=fmt(r.payer);$('each').textContent=fmt(r.each);
+  $('othersRow').hidden=Number(people)===1;
+  $('otherCount').textContent='（'+fmt(BigInt(people)-1n)+' 人）';
+  $('remainder').textContent=r.remainder>0n?'零頭 '+fmt(r.remainder)+' 元，已加在付錢的人身上。':'剛好均分，沒有零頭。';
+  $('total').textContent='應付總額 '+fmt(r.total)+' 元'+($('service').checked?'（含 10% 服務費；四捨五入至整數元）':'（未加服務費）')+'。合計核對：'+fmt(r.payer)+' + '+fmt(r.each)+' × '+fmt(BigInt(people)-1n)+' = '+fmt(r.total)+' 元。';
+  $('result').hidden=false;
+}
+$('form').addEventListener('submit',e=>{e.preventDefault();render();});
+for(const id of ['bill','people','service'])$(id).addEventListener('input',()=>{$('result').hidden=true;$('error').hidden=true;});
+render();
+</script>
+</body>
+</html>
